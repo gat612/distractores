@@ -1,0 +1,8 @@
+-Figuras en varias posiciones
+-Figuras aleatorias
+-Figuras que desaparezcan
+-Figuras con colores correctos 
+-Se añade Figuras con Colores incorrectos (6 figuras de color incorrecto)
+-Se añade Figuras con Colores correctos (6 figuras de color Correcto)
+-Se añade 3 tamaños
+-Se añade audio

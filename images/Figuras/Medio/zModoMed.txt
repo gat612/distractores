@@ -1,0 +1,5 @@
+-Figuras en varias posiciones
+-Figuras aleatorias
+-Figuras que desaparezcan
+-Figuras con colores correctos 
+-Se añade Figuras con Colores incorrectos 

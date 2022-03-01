@@ -1,13 +1,18 @@
+from cgitb import small
+from tkinter.ttk import Style
 import pygame, sys, random
 import pygame_widgets
 from pygame_widgets.slider import Slider
 from pygame_widgets.textbox import TextBox
 from pygame_widgets.button import Button as buton
 import sqlite3
+import random, itertools
+import pandas as pd
 
 # import gpiozero as gpioz #///libreria de los pines del Raspberry
 
 class Button():
+
     def __init__(self, image, pos, text_input, font, base_color, hovering_color):
         self.image = image
         self.x_pos = pos[0]
@@ -143,6 +148,19 @@ class RadioButton(pygame.sprite.Sprite):
         elif hover:
             self.image = self.hover_image
 
+class Stimulus(pygame.sprite.Sprite):
+
+    def __init__(self, stimulus_color, stimulus_size, pos_x, pos_y):
+        super().__init__()
+        self.image = self.set_stimulus_image(stimulus_color, stimulus_size)
+        self.rect = self.image.get_rect(center=(pos_x, pos_y))
+    
+    def set_stimulus_image(self, stimulus_color, stimulus_size):
+        return pygame.image.load(f'C:/Users/pame_/Documents/Proyectos/Distractores/sim_code/images/estimulos/{stimulus_color}_{stimulus_size}.png').convert_alpha()
+    
+    def update(self):
+        pass
+
 class FrameState():
 
     def __init__(self):
@@ -153,7 +171,16 @@ class FrameState():
         self.tm = True
         self.user_text = ''
         self.estudios_login = 0
+        self.pedal_pressed = False
         self.game_active = False
+        self.stimulus = []
+        self.counter = -1
+        self.stimulus_list = []
+        self.start_time = 0
+        self.reaction_time = []
+        self.pressed_keys = []
+        self.is_key_pressed = False
+        self.limit = 0
 
         # ////login buttons/////
         self.radioButtons = [
@@ -371,7 +398,7 @@ class FrameState():
         self.rojo_tuto_rect = self.rojo_tuto.get_rect(center=(300, 180))
         self.vino_tuto = pygame.image.load('images/estimulos/Vino_M.png').convert_alpha()
         self.vino_tuto_rect = self.vino_tuto.get_rect(center=(300, 180))
-        self.pare_tuto = pygame.image.load('images/estimulos/PareM.png').convert_alpha()
+        self.pare_tuto = pygame.image.load('images/estimulos/Pare_M.png').convert_alpha()
         self.pare_tuto_rect = self.pare_tuto.get_rect(center=(300, 180))
         self.estimulos = self.orden_tuto[indice_tuto]
 
@@ -400,6 +427,63 @@ class FrameState():
         self.timer_tuto = pygame.time.get_ticks()
 
         pygame.display.flip()
+    
+    def set_stimulus_parameters(self, button_num, brake_num, false_button_num, available_sizes):
+        
+        def get_press_button_stimulus(num):
+            colors = ['Amarillo', 'Azul', 'Blanco']
+            pos_x = random.sample(range(50, 500), num)
+            pos_y = random.sample(range(50, 350), num)
+            buttons = list(itertools.product(colors, available_sizes, ['button'], pos_x, pos_y)) * 2
+            random.shuffle(buttons)
+            return buttons[:num]
+
+        def get_press_brake_pedall(num):
+            sizes = available_sizes * num
+            pos_x = random.sample(range(50, 500), num)
+            pos_y = random.sample(range(50, 350), num)
+            brake = list(itertools.product(['Pare'], sizes, ['brake'], pos_x, pos_y))
+            random.shuffle(brake)
+            return brake[:num]
+
+        def get_false_stimulus(num):
+            colors = ['Rojo', 'Morado', 'Vino']
+            pos_x = random.sample(range(50, 500), num)
+            pos_y = random.sample(range(50, 350), num)
+            buttons = list(itertools.product(colors, available_sizes, ['false_button'], pos_x, pos_y))
+            random.shuffle(buttons)
+            return buttons[:num]
+        
+        self.reset_variables()
+        self.limit = button_num + brake_num + false_button_num
+        self.reaction_time = [4000] * self.limit
+        self.pressed_keys = [None] * self.limit
+        self.stimulus = get_press_button_stimulus(button_num) + get_press_brake_pedall(brake_num) + get_false_stimulus(false_button_num)
+        random.shuffle(self.stimulus)
+    
+    def add_stimulus_sprites(self):
+        i = 0
+        for s in self.stimulus:
+            new_stimulus = Stimulus(s[0], s[1], s[3], s[4])
+            stimulus_group[i].add(new_stimulus)
+            i += 1
+    
+    def calc_results(self):
+        res = pd.DataFrame(self.stimulus, columns=['name', 'size', 'type', 'pos_x', 'pos_y'])
+        res['pressed_key'] = self.pressed_keys
+        res['reaction_time'] = self.reaction_time
+        res['result'] = 'fail'
+        res.loc[((res['name'] == 'Pare') & (res['pressed_key'] == 'down')) | 
+                ((res['name'] == 'Azul') & (res['pressed_key'] == 'a')) | 
+                ((res['name'] == 'Amarillo') & (res['pressed_key'] == 's')) | 
+                ((res['name'] == 'Blanco') & (res['pressed_key'] == 'd')) |
+                ((res['type'] == 'false_button') & (res['pressed_key'].isna())), 'result'] = 'pass'
+        res['reaction'] = None
+        res.loc[(res['type'] != 'false_button') & (res['result'] == 'pass') & (res['reaction_time'] < 500), 'reaction'] = 'excelente'
+        res.loc[(res['type'] != 'false_button') & (res['result'] == 'pass') & (res['reaction_time'].between(500, 990)), 'reaction'] = 'buena'
+        res.loc[(res['type'] != 'false_button') & (res['result'] == 'pass') & (res['reaction_time'] >= 1000), 'reaction'] = 'riesgosa'
+        print(res)
+        self.correctos = (res['result'] == 'pass').sum()
 
     def level_selector(self): # Seleccion de nivel (5)
         screen.fill("#0a3057")
@@ -432,15 +516,62 @@ class FrameState():
             if event.type == pygame.MOUSEBUTTONDOWN or event.type == pygame.FINGERDOWN:
                 if btn_level_easy.checkInput(level_mouse_pos):
                     print('Inicia Modo Facil')
+                    self.set_stimulus_parameters(5, 1, 0, ['L'])
+                    self.add_stimulus_sprites()
                     self.estado = 6
                 elif btn_level_normal.checkInput(level_mouse_pos):
                     print('Inicia Modo Normal')
+                    self.set_stimulus_parameters(10, 3, 0, ['S', 'M', 'L'])
+                    self.add_stimulus_sprites()
                     self.estado = 7
                 elif btn_level_hard.checkInput(level_mouse_pos):
                     print('Inicia Modo Dificil')
+                    self.set_stimulus_parameters(19, 6, 5, ['S', 'M', 'L'])
+                    self.add_stimulus_sprites()
                     self.estado = 8
 
         pygame.display.flip()
+    
+    def run_level(self):
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_UP:
+                    print('pedal pressed!!')
+                    self.pedal_pressed = True
+                    self.game_active = True
+                elif event.key == pygame.K_n:
+                    self.estado = 5
+                elif event.key == pygame.K_m:
+                    self.estado = 9
+                elif event.key in [pygame.K_a, pygame.K_s, pygame.K_d, pygame.K_DOWN]:
+                    self.reaction_time[self.counter] = pygame.time.get_ticks() - self.start_time
+                    self.pressed_keys[self.counter] = pygame.key.name(event.key)
+                    self.is_key_pressed = True
+            if event.type == pygame.KEYUP:
+                if event.key == pygame.K_UP:
+                    print('pedal released!!')
+                    self.pedal_pressed = False
+            if event.type == stimulus_timer and self.game_active:
+                self.counter += 1
+                print('counter', self.counter)
+                if self.counter == self.limit:
+                    self.game_active = False
+                    self.calc_results()
+                    self.estado = 9
+                self.is_key_pressed = False
+                self.start_time = pygame.time.get_ticks()
+        
+        if self.game_active:
+            if not self.pedal_pressed and self.stimulus[self.counter][2] != 'brake':
+                # TODO: show pedal should be pressed message
+                self.game_active = False
+            if self.counter == -1:
+                self.start_time = pygame.time.get_ticks()
+            if not self.is_key_pressed:
+                stimulus_group[self.counter].draw(screen)
 
     def easy_mode(self): #Frame nivel facil (6)
         screen.fill("thistle2")
@@ -448,22 +579,7 @@ class FrameState():
         screen.blit(tutorial_surface, (-15, 0))
         semaforo_surf = pygame.image.load('images/Green.png').convert_alpha()
         screen.blit(semaforo_surf, (490, 35))
-        '''
-            //////
-            Aqui poner codigo para el nivel facil
-            //////
-        '''
-
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                pygame.quit()
-                sys.exit()
-            if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_n:
-                    self.estado = 5
-                elif event.key == pygame.K_m:
-                    self.estado = 9
-
+        self.run_level()
         pygame.display.flip()
 
     def normal_mode(self): #Frame nivel normal (7)
@@ -472,34 +588,7 @@ class FrameState():
         screen.blit(tutorial_surface, (-15, -5))
         semaforo_surf = pygame.image.load('images/Green.png').convert_alpha()
         screen.blit(semaforo_surf, (490, 35))
-        '''
-            //////
-            Aqui poner codigo para el nivel normal
-            //////
-        '''
-
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                pygame.quit()
-                sys.exit()
-            if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_UP:
-                    print('pedal pressed!!')
-                    self.game_active = True
-                elif event.key == pygame.K_n:
-                    self.estado = 5
-                elif event.key == pygame.K_m:
-                    self.estado = 9
-            if event.type == pygame.KEYUP:
-                if event.key == pygame.K_UP:
-                    print('pedal released!!')
-                    self.game_active = False
-        
-        if self.game_active:
-            print('game active')
-        else:
-            print('----------')
-
+        self.run_level()
         pygame.display.flip()
 
     def hard_mode(self): #Frame nivel dificil (8)
@@ -508,26 +597,10 @@ class FrameState():
         screen.blit(tutorial_surface, (-25, 5))
         semaforo_surf = pygame.image.load('images/Green.png').convert_alpha()
         screen.blit(semaforo_surf, (490, 35))
-        '''
-            //////
-            Aqui poner codigo para el nivel dificil
-            //////
-        '''
-
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                pygame.quit()
-                sys.exit()
-            if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_n:
-                    self.estado = 5
-                elif event.key == pygame.K_m:
-                    self.estado = 9
-
+        self.run_level()
         pygame.display.flip()
 
     def end_scores(self):  # Seleccion de nivel (9)
-        self.correctos = 20
         screen.fill("#0a3057")
         title_text = main_font.render("Simulación Finalizada", True, "#ee4e34")
         title_rect = title_text.get_rect(center=(300, 60))
@@ -537,7 +610,7 @@ class FrameState():
         superada_rect = superada_text.get_rect(midleft=(290, 150))
         no_superada_text = big_font.render("NO Superada", True, "white")
         no_superada_rect = no_superada_text.get_rect(midleft=(280, 150))
-        posibles_text = main_font.render("aciertos de 30 posibles", True, "white")
+        posibles_text = main_font.render(f"aciertos de {self.limit} posibles", True, "white")
         posibles_rect = posibles_text.get_rect(midleft=(200, 250))
         aciertos_text = big_font.render(str(self.correctos), True, "#ee4e34")
         aciertos_rect = aciertos_text.get_rect(midright=(190, 250))
@@ -551,7 +624,7 @@ class FrameState():
         screen.blit(prueba_text, prueba_rect)
         screen.blit(posibles_text, posibles_rect)
         screen.blit(aciertos_text, aciertos_rect)
-        if self.correctos >= 23:
+        if self.correctos >= int(self.limit * 0.8):
             screen.blit(superada_text, superada_rect)
         else:
             screen.blit(no_superada_text, no_superada_rect)
@@ -626,6 +699,18 @@ class FrameState():
         input_rect.w = max(100, text_surface.get_width() + 10)
         pygame.display.flip()
 
+    def reset_variables(self):
+        self.pedal_pressed = False
+        self.game_active = False
+        self.stimulus = []
+        self.counter = -1
+        self.stimulus_list = []
+        self.start_time = 0
+        self.reaction_time = []
+        self.pressed_keys = []
+        self.is_key_pressed = False
+        self.limit = 0
+
     def frame_manager(self):
         # print('frame_manager')
         if self.estado == 1:
@@ -674,6 +759,15 @@ cursor.execute("CREATE TABLE IF NOT EXISTS usuarios"\
 conexion.commit()
 
 indice_tuto = 0
+
+# Groups
+stimulus_group = []
+for i in range(30):
+    stimulus_group.append(pygame.sprite.GroupSingle())
+
+# stimulus timer
+stimulus_timer = pygame.USEREVENT + 1
+pygame.time.set_timer(stimulus_timer, 4000)
 
 # #// Pulsadores en pines del Raspberry
 # pulAzul = gpioz.Button('GPIO22')

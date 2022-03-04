@@ -181,6 +181,7 @@ class FrameState():
         self.pressed_keys = []
         self.is_key_pressed = False
         self.limit = 0
+        self.semaforo_surf = pygame.image.load('images/Green.png').convert_alpha()
 
         # ////login buttons/////
         self.radioButtons = [
@@ -572,13 +573,17 @@ class FrameState():
                 self.start_time = pygame.time.get_ticks()
             if not self.is_key_pressed:
                 stimulus_group[self.counter].draw(screen)
+            if self.stimulus[self.counter][2] != 'brake' and self.counter >= -1:
+                screen.blit(self.semaforo_surf, (490, 35))
+            elif self.stimulus[self.counter][2] == 'brake' and self.is_key_pressed:
+                screen.blit(self.semaforo_surf, (490, 35))
+        else:
+            screen.blit(self.semaforo_surf, (490, 35))
 
     def easy_mode(self): #Frame nivel facil (6)
         screen.fill("thistle2")
         tutorial_surface = pygame.image.load('images/viaEasy.PNG').convert()
         screen.blit(tutorial_surface, (-15, 0))
-        semaforo_surf = pygame.image.load('images/Green.png').convert_alpha()
-        screen.blit(semaforo_surf, (490, 35))
         self.run_level()
         pygame.display.flip()
 
@@ -586,8 +591,6 @@ class FrameState():
         screen.fill("thistle2")
         tutorial_surface = pygame.image.load('images/viaMed.png').convert()
         screen.blit(tutorial_surface, (-15, -5))
-        semaforo_surf = pygame.image.load('images/Green.png').convert_alpha()
-        screen.blit(semaforo_surf, (490, 35))
         self.run_level()
         pygame.display.flip()
 
@@ -595,8 +598,6 @@ class FrameState():
         screen.fill("thistle2")
         tutorial_surface = pygame.image.load('images/viaPro.PNG').convert()
         screen.blit(tutorial_surface, (-25, 5))
-        semaforo_surf = pygame.image.load('images/Green.png').convert_alpha()
-        screen.blit(semaforo_surf, (490, 35))
         self.run_level()
         pygame.display.flip()
 

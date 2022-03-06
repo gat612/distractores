@@ -649,8 +649,8 @@ class FrameState():
         
     def test_assesment(self): #Frame prueba definitiva (12)
         screen.fill("thistle2")
-        tutorial_surface = pygame.image.load('images/roadTest.PNG').convert()
-        screen.blit(tutorial_surface, (-15, 5))
+        prueba_final = pygame.transform.scale(pygame.image.load('images/road.jpg').convert(), (620,410))
+        screen.blit(prueba_final, (-15, 5))
         self.run_level()
         pygame.display.flip()
 

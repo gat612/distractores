@@ -361,7 +361,8 @@ class FrameState():
         self.selected_option = self.studies.update(self.event_list)
         if self.selected_option >= 0:
             self.estudios = self.selected_option
-            
+        else:
+            self.estudios = 0
 
         if self.radioButtonsAccept[0].clicked == True:
             for button in [btn_acepta]:  # [PLAY_BUTTON, OPTIONS_BUTTON, QUIT_BUTTON]
@@ -381,12 +382,20 @@ class FrameState():
     def tutorial(self): #Frame tutorial pedales y botones (4)
         global indice_tuto
         self.orden_tuto = ['amarillo', 'azul', 'blanco']
-        screen.fill("thistle2")
-        tutorial_surface = pygame.image.load('images/via.png').convert()
-        tutorial_surface = pygame.transform.scale(tutorial_surface, (620, 410))
-        screen.blit(tutorial_surface, (-10, 0))
-        semaforo_surf = pygame.image.load('images/Green.png').convert_alpha()
-        screen.blit(semaforo_surf, (490, 35))
+        screen.fill("#0a3057")
+        tuto_surface = pygame.transform.scale(pygame.image.load('images/via.png').convert(), (620, 410))
+        pedalera_surface = pygame.image.load('images/pedaleraTut.png').convert_alpha()
+        screen.blit(tuto_surface, (-10, 0))
+        screen.blit(pedalera_surface, (120, 120))
+        line_1 = main_font.render("Presiona el pedal del lado izquierdo con el pie izquierdo (embrague)", True, "#0a3057")
+        line_2 = main_font.render("y usa el pie derecho para presionar los pedales del centro (freno)", True, "#0a3057")
+        line_3 = main_font.render("y del lado derecho (acelerador), tal como lo harías en un vehículo", True, "#0a3057")
+        line_1_rect = line_1.get_rect(center=(300, 40))
+        line_2_rect = line_2.get_rect(center=(300, 60))
+        line_3_rect = line_3.get_rect(center=(300, 80))
+        screen.blit(line_1, line_1_rect)
+        screen.blit(line_2, line_2_rect)
+        screen.blit(line_3, line_3_rect)
         self.amarillo_tuto = pygame.image.load('images/estimulos/Amarillo_M.png').convert_alpha()
         self.amarillo_tuto_rect = self.amarillo_tuto.get_rect(center=(300, 180))
         self.blanco_tuto = pygame.image.load('images/estimulos/Blanco_M.png').convert_alpha()
@@ -404,14 +413,17 @@ class FrameState():
         self.estimulos = self.orden_tuto[indice_tuto]
 
         if self.estimulos == 'amarillo':
-            FrameState.waithere(self)
-            FrameState.presiona_boton(self, self.amarillo_tuto, self.amarillo_tuto_rect)
+            pass
+            #FrameState.waithere(self)
+            #FrameState.presiona_boton(self, self.amarillo_tuto, self.amarillo_tuto_rect)
         elif self.estimulos == 'blanco':
-            FrameState.waithere(self)
-            FrameState.presiona_boton(self, self.blanco_tuto, self.blanco_tuto_rect)
+            pass
+            #FrameState.waithere(self)
+            #FrameState.presiona_boton(self, self.blanco_tuto, self.blanco_tuto_rect)
         elif self.estimulos == 'azul':
-            FrameState.waithere(self)
-            FrameState.presiona_boton(self, self.azul_tuto, self.azul_tuto_rect)
+            pass
+            #FrameState.waithere(self)
+            #FrameState.presiona_boton(self, self.azul_tuto, self.azul_tuto_rect)
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -423,9 +435,43 @@ class FrameState():
                     self.accion = True
                     print('presionó a')
                 if event.key == pygame.K_m:
-                    self.estado = 5
+                    self.estado = 11
 
         self.timer_tuto = pygame.time.get_ticks()
+
+        pygame.display.flip()
+        
+    def mode_selector(self): # Seleccion de modo (11)
+        screen.fill("#0a3057")
+        level_text = big_font.render("Seleccione el modo", True, "#ee4e34")
+        level_rect = level_text.get_rect(center=(300,60))
+        logo_surface = pygame.image.load('images/logoAzul100x100.png').convert_alpha()
+        screen.blit(logo_surface, (500, 10))
+        screen.blit(level_text, level_rect)
+        pygame.draw.rect(screen, 'thistle2', (210, 140, 180, 40))
+        pygame.draw.rect(screen, 'DarkOrange2', (210, 260, 180, 40))
+
+        mode_mouse_pos = pygame.mouse.get_pos()
+
+        btn_practice = Button(image=None, pos=(300, 160), text_input="PRÁCTICA", font=main_font, base_color="black",
+                               hovering_color="thistle3")
+        btn_assesment = Button(image=None, pos=(300, 280), text_input="TOMAR LA PRUEBA", font=main_font, base_color="black",
+                                hovering_color="thistle3")
+
+        for button in [btn_practice, btn_assesment]:
+            button.changeHoverColor(mode_mouse_pos)
+            button.update(screen)
+
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+            if event.type == pygame.MOUSEBUTTONDOWN or event.type == pygame.FINGERDOWN:
+                if btn_practice.checkInput(mode_mouse_pos):
+                    self.estado = 5
+                elif btn_assesment.checkInput(mode_mouse_pos):
+                    self.estado = 12
+
 
         pygame.display.flip()
     
@@ -544,7 +590,7 @@ class FrameState():
                     self.pedal_pressed = True
                     self.game_active = True
                 elif event.key == pygame.K_n:
-                    self.estado = 5
+                    self.estado = 11
                 elif event.key == pygame.K_m:
                     self.estado = 9
                 elif event.key in [pygame.K_a, pygame.K_s, pygame.K_d, pygame.K_DOWN]:
@@ -600,6 +646,13 @@ class FrameState():
         screen.blit(tutorial_surface, (-25, 5))
         self.run_level()
         pygame.display.flip()
+        
+    def test_assesment(self): #Frame prueba definitiva (12)
+        screen.fill("thistle2")
+        prueba_final = pygame.transform.scale(pygame.image.load('images/road.jpg').convert(), (620,410))
+        screen.blit(prueba_final, (-15, 5))
+        self.run_level()
+        pygame.display.flip()
 
     def end_scores(self):  # Seleccion de nivel (9)
         screen.fill("#0a3057")
@@ -634,7 +687,7 @@ class FrameState():
 
         btn_detail_results = Button(image=None, pos=(100, 380), text_input="DETALLE DE RESULTADOS", font=short_font, base_color="black",
                                 hovering_color="thistle4")
-        btn_change_level = Button(image=None, pos=(305, 380), text_input="CAMBIAR DIFICULTAD", font=short_font, base_color="black",
+        btn_change_level = Button(image=None, pos=(305, 380), text_input="CAMBIAR MODO/DIFICULTAD", font=short_font, base_color="black",
                                   hovering_color="thistle4")
         btn_end_test = Button(image=None, pos=(500, 380), text_input="FINALIZAR PRUEBA", font=short_font, base_color="black",
                                 hovering_color="thistle4")
@@ -653,7 +706,7 @@ class FrameState():
                     self.estado = 10
                 elif btn_change_level.checkInput(end_mouse_pos):
                     print('Cambio de dificultad')
-                    self.estado = 5
+                    self.estado = 11
                 elif btn_end_test.checkInput(end_mouse_pos):
                     print('Fin Prueba, pantalla inicial')
                     self.estado = 1
@@ -699,6 +752,22 @@ class FrameState():
         screen.blit(text_surface, (input_rect.x + 5, input_rect.y + 5))
         input_rect.w = max(100, text_surface.get_width() + 10)
         pygame.display.flip()
+        
+    def acelerador_suelto(self):
+        screen.fill("thistle2")
+        tutorial_surface = pygame.image.load('images/roadAcelerador.PNG').convert()
+        screen.blit(tutorial_surface, (-15, 5))
+
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_m:
+                    self.estado = 9 #Cambiar para q vuelva a la prueba
+
+
+        pygame.display.flip()
 
     def reset_variables(self):
         self.pedal_pressed = False
@@ -740,8 +809,12 @@ class FrameState():
             self.end_scores()
         elif self.estado == 10:
             self.show_result()
-
-
+        elif self.estado == 11:
+            self.mode_selector()
+        elif self.estado == 12:
+            self.test_assesment()
+        elif self.estado == 99:
+            self.acelerador_suelto()
 
 # General Setup
 pygame.init()

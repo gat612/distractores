@@ -522,12 +522,12 @@ class FrameState():
                     self.estado = 6
                 elif btn_level_normal.checkInput(level_mouse_pos):
                     print('Inicia Modo Normal')
-                    self.set_stimulus_parameters(10, 3, 0, ['S', 'M', 'L'])
+                    self.set_stimulus_parameters(10, 3, 0, ['S', 'M', 'L']) # incorrectos
                     self.add_stimulus_sprites()
                     self.estado = 7
                 elif btn_level_hard.checkInput(level_mouse_pos):
                     print('Inicia Modo Dificil')
-                    self.set_stimulus_parameters(19, 6, 5, ['S', 'M', 'L'])
+                    self.set_stimulus_parameters(19, 6, 5, ['S', 'M', 'L']) # desaparezca antes de que presione el boton
                     self.add_stimulus_sprites()
                     self.estado = 8
 
@@ -768,12 +768,14 @@ for i in range(30):
 
 # stimulus timer
 stimulus_timer = pygame.USEREVENT + 1
-pygame.time.set_timer(stimulus_timer, 4000)
+pygame.time.set_timer(stimulus_timer, 4000) 
+# TODO: tiempo variable de aparición de estimulo
+# TODO: desaparezca el estimulo
 
 # #// Pulsadores en pines del Raspberry
-# pulAzul = gpioz.Button('GPIO22')
-# pulBlanco = gpioz.Button('GPIO27')
-# pulAmarillo = gpioz.Button('GPIO17')
+# pulAzul = gpioz.Button('GPIO22') a 0
+# pulBlanco = gpioz.Button('GPIO27') d 
+# pulAmarillo = gpioz.Button('GPIO17') s 7
 
 # Mainloop
 while True:
